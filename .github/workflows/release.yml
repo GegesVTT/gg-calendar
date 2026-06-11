@@ -55,7 +55,9 @@ jobs:
       - name: Build module archive
         run: |
           mkdir -p build/gg-calendar
-          cp -r module.json README.md scripts templates styles lang build/gg-calendar/
+          cp -r gg-calendar/module.json gg-calendar/README.md \
+                gg-calendar/scripts gg-calendar/templates \
+                gg-calendar/styles gg-calendar/lang build/gg-calendar/
           cd build
           zip -rq "../gg-calendar-${{ github.ref_name }}.zip" gg-calendar
 
