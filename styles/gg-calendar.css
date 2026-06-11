@@ -60,25 +60,31 @@
 
 /* ---- GM controls ---- */
 .gg-calendar .ggc-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
 }
 .gg-calendar .ggc-controls button {
-  flex: 1;
-  font-size: 0.8em;
-  padding: 3px 0;
+  font-size: 0.78em;
+  padding: 4px 0;
   background: transparent;
   border: 1px solid var(--ggc-line);
   border-radius: 4px;
   color: var(--ggc-ink);
   cursor: pointer;
   line-height: 1.4;
+  user-select: none;
 }
 .gg-calendar .ggc-controls button:hover {
   border-color: var(--ggc-brass);
   color: var(--ggc-brass);
 }
-.gg-calendar .ggc-controls .ggc-rewind { color: var(--ggc-ink-dim); }
+.gg-calendar .ggc-controls .ggc-arrow {
+  color: var(--ggc-ink-dim);
+  font-weight: 700;
+  margin-right: 1px;
+}
+.gg-calendar .ggc-controls button:hover .ggc-arrow { color: var(--ggc-brass); }
 
 /* ---- Month navigation ---- */
 .gg-calendar .ggc-monthnav {

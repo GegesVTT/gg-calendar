@@ -17,15 +17,15 @@
     {{/if}}
   </header>
 
-  {{!-- GM time controls --}}
+  {{!-- GM time controls — left-click advances, right-click rewinds --}}
   {{#if isGM}}
-  <div class="ggc-controls">
-    <button type="button" data-action="advance" data-seconds="60" title="+1 min">+1m</button>
-    <button type="button" data-action="advance" data-seconds="600" title="+10 min">+10m</button>
-    <button type="button" data-action="advance" data-seconds="3600" title="+1 hour">+1h</button>
-    <button type="button" data-action="advance" data-seconds="28800" title="+8 hours (long rest)">+8h</button>
-    <button type="button" data-action="advance" data-seconds="86400" title="+1 day">+1d</button>
-    <button type="button" data-action="advance" data-seconds="-3600" title="-1 hour" class="ggc-rewind">-1h</button>
+  <div class="ggc-controls" title="{{localize "GGCAL.Controls.Hint"}}">
+    <button type="button" data-action="advance" data-seconds="60"><span class="ggc-arrow">±</span>1m</button>
+    <button type="button" data-action="advance" data-seconds="600"><span class="ggc-arrow">±</span>10m</button>
+    <button type="button" data-action="advance" data-seconds="1800"><span class="ggc-arrow">±</span>30m</button>
+    <button type="button" data-action="advance" data-seconds="3600"><span class="ggc-arrow">±</span>1h</button>
+    <button type="button" data-action="advance" data-seconds="28800"><span class="ggc-arrow">±</span>8h</button>
+    <button type="button" data-action="advance" data-seconds="86400"><span class="ggc-arrow">±</span>1d</button>
   </div>
   {{/if}}
 

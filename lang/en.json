@@ -3,6 +3,7 @@
   "GGCAL.OpenCalendar": "Open GG Calendar",
   "GGCAL.Today": "Today",
   "GGCAL.RollWeather": "Weather",
+  "GGCAL.Controls.Hint": "Left-click advances time, right-click rewinds.",
 
   "GGCAL.Preset.gregorian": "Gregorian (Earth)",
   "GGCAL.Preset.harptos": "Calendar of Harptos (Forgotten Realms)",

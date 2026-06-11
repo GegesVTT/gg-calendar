@@ -133,6 +133,26 @@ export class GGCalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await TimeManager.advance(Number(target.dataset.seconds));
   }
 
+  /**
+   * ApplicationV2's data-action system only fires on left-click.
+   * We attach a contextmenu listener so a right-click on the same buttons
+   * rewinds instead of advancing — and disable the native browser menu there.
+   */
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    const root = this.element;
+    if (!root) return;
+    root.querySelectorAll('.ggc-controls button[data-seconds]').forEach((btn) => {
+      btn.addEventListener('contextmenu', async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const seconds = Number(btn.dataset.seconds);
+        if (!Number.isFinite(seconds)) return;
+        await TimeManager.advance(-seconds);
+      });
+    });
+  }
+
   static async #onRollWeather() {
     const now = this.getEngine().fromSeconds(game.time.worldTime);
     await Weather.roll(now);
