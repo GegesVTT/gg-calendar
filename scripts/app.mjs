@@ -135,21 +135,22 @@ export class GGCalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /**
    * ApplicationV2's data-action system only fires on left-click.
-   * We attach a contextmenu listener so a right-click on the same buttons
-   * rewinds instead of advancing — and disable the native browser menu there.
+   * A single delegated contextmenu listener on the controls container makes
+   * right-click rewind. ApplicationV2 replaces the DOM on each render, so the
+   * old listener is discarded with it — no accumulation.
    */
   _onRender(context, options) {
     super._onRender?.(context, options);
-    const root = this.element;
-    if (!root) return;
-    root.querySelectorAll('.ggc-controls button[data-seconds]').forEach((btn) => {
-      btn.addEventListener('contextmenu', async (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        const seconds = Number(btn.dataset.seconds);
-        if (!Number.isFinite(seconds)) return;
-        await TimeManager.advance(-seconds);
-      });
+    const controls = this.element?.querySelector(".ggc-controls");
+    if (!controls) return;
+    controls.addEventListener("contextmenu", async (ev) => {
+      const btn = ev.target.closest("button[data-seconds]");
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const seconds = Number(btn.dataset.seconds);
+      if (!Number.isFinite(seconds)) return;
+      await TimeManager.advance(-seconds);
     });
   }
 
@@ -194,6 +195,7 @@ export class GGCalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await DialogV2.wait({
       window: { title: `${day} ${monthName} — ${game.i18n.localize("GGCAL.Notes.Title")}` },
       position: { width: 420 },
+      rejectClose: false,
       content: `<div class="gg-calendar-notes">${list}${addForm}</div>`,
       render: (_ev, dialog) => {
         const root = dialog.element ?? dialog;
@@ -234,6 +236,7 @@ export class GGCalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const result = await DialogV2.prompt({
       window: { title: game.i18n.localize("GGCAL.SetDate.Title") },
+      rejectClose: false,
       content: `
         <div class="form-group"><label>${game.i18n.localize("GGCAL.SetDate.Year")}</label>
           <input type="number" name="year" value="${now.year}"></div>

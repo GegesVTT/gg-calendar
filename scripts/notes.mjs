@@ -30,9 +30,11 @@ export class NotesStore {
     return game.user.isGM ? notes : notes.filter(n => !n.gmOnly);
   }
 
-  /** Does this date have any note visible to the current user? */
+  /** Does this date have any note visible to the current user? (no clone) */
   static has(year, month, day) {
-    return this.get(year, month, day).length > 0;
+    const key = CalendarEngine.dateKey(year, month, day);
+    const notes = game.settings.get(MODULE_ID, this.SETTING)?.[key] ?? [];
+    return game.user.isGM ? notes.length > 0 : notes.some(n => !n.gmOnly);
   }
 
   static async add(year, month, day, { title, text, gmOnly }) {

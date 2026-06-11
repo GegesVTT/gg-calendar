@@ -40,7 +40,7 @@
   </nav>
 
   {{!-- Day grid --}}
-  <div class="ggc-grid" style="--ggc-cols: {{weekdays.length}}">
+  <div class="ggc-grid" style="--ggc-cols: {{#if weekdays.length}}{{weekdays.length}}{{else}}1{{/if}}">
     {{#unless viewIsIntercalary}}
     <div class="ggc-row ggc-head">
       {{#each weekdays}}<div class="ggc-cell ggc-wd">{{this}}</div>{{/each}}
