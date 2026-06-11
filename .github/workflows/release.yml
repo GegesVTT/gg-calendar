@@ -1,0 +1,60 @@
+# GG Calendar — Release automation
+# Trigger: push a tag like v1.0.0, v1.2.3, etc.
+#
+#   git tag v1.1.0
+#   git push origin v1.1.0
+#
+# The workflow then:
+#   1. Reads the version from the tag (strips the leading "v").
+#   2. Injects that version and the correct download URL into module.json
+#      — so you never have to edit them by hand again.
+#   3. Builds gg-calendar-v<version>.zip with the proper folder structure.
+#   4. Creates a GitHub Release with both module.json and the zip attached,
+#      which keeps the ".../releases/latest/download/module.json" manifest
+#      URL (used by Foundry and the Bazaar) always pointing at the newest build.
+
+name: Release GG Calendar
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Inject version and download URL into module.json
+        uses: microsoft/variable-substitution@v1
+        with:
+          files: "module.json"
+        env:
+          version: ${{ steps.version.outputs.value }}
+          download: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gg-calendar-${{ github.ref_name }}.zip
+          manifest: https://github.com/${{ github.repository }}/releases/latest/download/module.json
+
+      - name: Build module archive
+        run: |
+          mkdir -p build/gg-calendar
+          cp -r module.json README.md scripts templates styles lang build/gg-calendar/
+          cd build
+          zip -rq "../gg-calendar-${{ github.ref_name }}.zip" gg-calendar
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: GG Calendar ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            module.json
+            gg-calendar-${{ github.ref_name }}.zip
