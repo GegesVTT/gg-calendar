@@ -1,0 +1,86 @@
+<div class="ggc-root">
+
+  {{!-- Clock & season header --}}
+  <header class="ggc-clock">
+    <div class="ggc-clock-time">{{time}}</div>
+    <div class="ggc-clock-date">
+      {{#if now.weekdayName}}<span class="ggc-weekday">{{now.weekdayName}},</span>{{/if}}
+      {{now.day}} {{now.monthName}}, {{now.displayYear}}
+    </div>
+    {{#if now.season}}
+      <div class="ggc-season"><i class="fa-solid {{now.season.icon}}"></i> {{now.season.name}}</div>
+    {{/if}}
+    {{#if weather}}
+      <div class="ggc-weather" title="{{weather.label}}">
+        <i class="fa-solid {{weather.icon}}"></i> {{weather.temp}}
+      </div>
+    {{/if}}
+  </header>
+
+  {{!-- GM time controls --}}
+  {{#if isGM}}
+  <div class="ggc-controls">
+    <button type="button" data-action="advance" data-seconds="60" title="+1 min">+1m</button>
+    <button type="button" data-action="advance" data-seconds="600" title="+10 min">+10m</button>
+    <button type="button" data-action="advance" data-seconds="3600" title="+1 hour">+1h</button>
+    <button type="button" data-action="advance" data-seconds="28800" title="+8 hours (long rest)">+8h</button>
+    <button type="button" data-action="advance" data-seconds="86400" title="+1 day">+1d</button>
+    <button type="button" data-action="advance" data-seconds="-3600" title="-1 hour" class="ggc-rewind">-1h</button>
+  </div>
+  {{/if}}
+
+  {{!-- Month navigation --}}
+  <nav class="ggc-monthnav">
+    <button type="button" data-action="prevMonth"><i class="fa-solid fa-chevron-left"></i></button>
+    <div class="ggc-monthlabel">
+      <span class="ggc-month">{{viewMonthName}}</span>
+      <span class="ggc-year">{{viewYearDisplay}}</span>
+    </div>
+    <button type="button" data-action="nextMonth"><i class="fa-solid fa-chevron-right"></i></button>
+  </nav>
+
+  {{!-- Day grid --}}
+  <div class="ggc-grid" style="--ggc-cols: {{weekdays.length}}">
+    {{#unless viewIsIntercalary}}
+    <div class="ggc-row ggc-head">
+      {{#each weekdays}}<div class="ggc-cell ggc-wd">{{this}}</div>{{/each}}
+    </div>
+    {{/unless}}
+
+    {{#each grid}}
+      {{#if this.isIntercalary}}
+        <div class="ggc-festival {{#if this.isToday}}ggc-today{{/if}} {{#if this.hasNotes}}ggc-noted{{/if}}"
+             data-action="openDay" data-day="{{this.day}}">
+          <i class="fa-solid fa-star"></i>
+          <span>{{this.label}}</span>
+          {{#if this.hasNotes}}<i class="fa-solid fa-circle ggc-dot"></i>{{/if}}
+        </div>
+      {{else}}
+        <div class="ggc-row">
+          {{#each this.cells}}
+            {{#if this.day}}
+              <div class="ggc-cell ggc-day {{#if this.isToday}}ggc-today{{/if}} {{#if this.hasNotes}}ggc-noted{{/if}}"
+                   data-action="openDay" data-day="{{this.day}}">
+                <span>{{this.day}}</span>
+                {{#if this.hasNotes}}<i class="fa-solid fa-circle ggc-dot"></i>{{/if}}
+              </div>
+            {{else}}
+              <div class="ggc-cell ggc-blank"></div>
+            {{/if}}
+          {{/each}}
+        </div>
+      {{/if}}
+    {{/each}}
+  </div>
+
+  {{!-- Footer --}}
+  <footer class="ggc-footer">
+    <button type="button" data-action="goToday"><i class="fa-solid fa-location-crosshairs"></i> {{localize "GGCAL.Today"}}</button>
+    {{#if isGM}}
+    <button type="button" data-action="setDate"><i class="fa-solid fa-pen-to-square"></i> {{localize "GGCAL.SetDate.Button"}}</button>
+    <button type="button" data-action="rollWeather"><i class="fa-solid fa-cloud-sun-rain"></i> {{localize "GGCAL.RollWeather"}}</button>
+    {{/if}}
+  </footer>
+
+  <div class="ggc-brand">GG Calendar · Geges</div>
+</div>

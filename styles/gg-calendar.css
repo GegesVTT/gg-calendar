@@ -1,0 +1,241 @@
+/* ============================================
+   GG Calendar — by Geges
+   Brass-and-ink aesthetic that sits naturally
+   inside Foundry's dark UI. Scoped to .gg-calendar.
+   ============================================ */
+
+.gg-calendar {
+  --ggc-brass: #c9a45c;
+  --ggc-brass-dim: #8a7340;
+  --ggc-ink: #e8e2d5;
+  --ggc-ink-dim: #9b958a;
+  --ggc-panel: rgba(20, 18, 14, 0.55);
+  --ggc-line: rgba(201, 164, 92, 0.25);
+  --ggc-today: #e3b765;
+}
+
+.gg-calendar .ggc-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  color: var(--ggc-ink);
+  font-family: var(--font-primary, "Signika", sans-serif);
+}
+
+/* ---- Clock header ---- */
+.gg-calendar .ggc-clock {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "time date season" "time date weather";
+  align-items: center;
+  column-gap: 12px;
+  padding: 8px 10px;
+  background: var(--ggc-panel);
+  border: 1px solid var(--ggc-line);
+  border-radius: 6px;
+}
+.gg-calendar .ggc-clock-time {
+  grid-area: time;
+  font-size: 1.9em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ggc-brass);
+  font-variant-numeric: tabular-nums;
+}
+.gg-calendar .ggc-clock-date { grid-area: date; line-height: 1.25; }
+.gg-calendar .ggc-weekday { color: var(--ggc-ink-dim); display: block; font-size: 0.85em; }
+.gg-calendar .ggc-season {
+  grid-area: season;
+  font-size: 0.8em;
+  color: var(--ggc-ink-dim);
+  text-align: right;
+}
+.gg-calendar .ggc-weather {
+  grid-area: weather;
+  font-size: 0.85em;
+  color: var(--ggc-brass);
+  text-align: right;
+}
+
+/* ---- GM controls ---- */
+.gg-calendar .ggc-controls {
+  display: flex;
+  gap: 4px;
+}
+.gg-calendar .ggc-controls button {
+  flex: 1;
+  font-size: 0.8em;
+  padding: 3px 0;
+  background: transparent;
+  border: 1px solid var(--ggc-line);
+  border-radius: 4px;
+  color: var(--ggc-ink);
+  cursor: pointer;
+  line-height: 1.4;
+}
+.gg-calendar .ggc-controls button:hover {
+  border-color: var(--ggc-brass);
+  color: var(--ggc-brass);
+}
+.gg-calendar .ggc-controls .ggc-rewind { color: var(--ggc-ink-dim); }
+
+/* ---- Month navigation ---- */
+.gg-calendar .ggc-monthnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.gg-calendar .ggc-monthnav button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  background: transparent;
+  border: 1px solid var(--ggc-line);
+  border-radius: 50%;
+  color: var(--ggc-ink);
+  cursor: pointer;
+}
+.gg-calendar .ggc-monthnav button:hover { border-color: var(--ggc-brass); color: var(--ggc-brass); }
+.gg-calendar .ggc-monthlabel { text-align: center; line-height: 1.1; }
+.gg-calendar .ggc-month { display: block; font-weight: 700; font-size: 1.05em; }
+.gg-calendar .ggc-year { font-size: 0.8em; color: var(--ggc-ink-dim); }
+
+/* ---- Grid ---- */
+.gg-calendar .ggc-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gg-calendar .ggc-row {
+  display: grid;
+  grid-template-columns: repeat(var(--ggc-cols, 7), 1fr);
+  gap: 2px;
+}
+.gg-calendar .ggc-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.gg-calendar .ggc-wd {
+  aspect-ratio: auto;
+  padding: 2px 0;
+  font-size: 0.62em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ggc-ink-dim);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.gg-calendar .ggc-day {
+  background: var(--ggc-panel);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.gg-calendar .ggc-day:hover { border-color: var(--ggc-brass-dim); }
+.gg-calendar .ggc-blank { background: transparent; }
+
+/* Signature: today glows like a brass seal */
+.gg-calendar .ggc-today {
+  border-color: var(--ggc-today) !important;
+  color: var(--ggc-today);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(227, 183, 101, 0.45), inset 0 0 6px rgba(227, 183, 101, 0.18);
+}
+
+.gg-calendar .ggc-dot {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  font-size: 0.35em;
+  color: var(--ggc-brass);
+}
+
+/* Festival (intercalary) banner rows */
+.gg-calendar .ggc-festival {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0;
+  background: linear-gradient(90deg, transparent, rgba(201, 164, 92, 0.14), transparent);
+  border: 1px dashed var(--ggc-line);
+  border-radius: 4px;
+  font-size: 0.85em;
+  cursor: pointer;
+  position: relative;
+}
+.gg-calendar .ggc-festival:hover { border-color: var(--ggc-brass); }
+.gg-calendar .ggc-festival i.fa-star { color: var(--ggc-brass); font-size: 0.75em; }
+
+/* ---- Footer ---- */
+.gg-calendar .ggc-footer {
+  display: flex;
+  gap: 4px;
+}
+.gg-calendar .ggc-footer button {
+  flex: 1;
+  font-size: 0.78em;
+  padding: 4px 0;
+  background: transparent;
+  border: 1px solid var(--ggc-line);
+  border-radius: 4px;
+  color: var(--ggc-ink);
+  cursor: pointer;
+}
+.gg-calendar .ggc-footer button:hover { border-color: var(--ggc-brass); color: var(--ggc-brass); }
+
+.gg-calendar .ggc-brand {
+  text-align: center;
+  font-size: 0.62em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ggc-ink-dim);
+  opacity: 0.6;
+}
+
+/* ---- Notes dialog ---- */
+.gg-calendar-notes .ggc-note {
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-left: 2px solid #c9a45c;
+  background: rgba(201, 164, 92, 0.07);
+  border-radius: 0 4px 4px 0;
+}
+.gg-calendar-notes .ggc-note-gm { border-left-color: #b05c5c; }
+.gg-calendar-notes .ggc-note-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gg-calendar-notes .ggc-note-head .ggc-del { margin-left: auto; opacity: 0.6; }
+.gg-calendar-notes .ggc-note-head .ggc-del:hover { opacity: 1; }
+.gg-calendar-notes .ggc-tag {
+  font-size: 0.65em;
+  padding: 1px 5px;
+  border: 1px solid #b05c5c;
+  border-radius: 3px;
+  color: #b05c5c;
+  text-transform: uppercase;
+}
+.gg-calendar-notes .ggc-note-body { font-size: 0.9em; white-space: pre-wrap; }
+.gg-calendar-notes .ggc-empty { opacity: 0.6; font-style: italic; }
+
+/* ---- Chat weather card ---- */
+.gg-calendar-chat-weather {
+  padding: 6px 8px;
+  border-left: 2px solid #c9a45c;
+  background: rgba(201, 164, 92, 0.07);
+  border-radius: 0 4px 4px 0;
+}
+.gg-calendar-chat-weather i { color: #c9a45c; margin-right: 4px; }
+.gg-calendar-chat-weather .ggc-chat-date {
+  font-size: 0.8em;
+  opacity: 0.7;
+  margin-top: 2px;
+}
