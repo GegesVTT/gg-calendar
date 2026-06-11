@@ -6,6 +6,7 @@ import { MODULE_ID } from "./constants.mjs";
 import { NotesStore } from "./notes.mjs";
 import { Weather } from "./weather.mjs";
 import { TimeManager } from "./time.mjs";
+import { Chronicle } from "./chronicle.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 
@@ -35,7 +36,8 @@ export class GGCalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
       advance: GGCalendarApp.#onAdvance,
       openDay: GGCalendarApp.#onOpenDay,
       rollWeather: GGCalendarApp.#onRollWeather,
-      setDate: GGCalendarApp.#onSetDate
+      setDate: GGCalendarApp.#onSetDate,
+      chronicle: GGCalendarApp.#onChronicle
     }
   };
 
@@ -164,6 +166,51 @@ export class GGCalendarApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const now = this.getEngine().fromSeconds(game.time.worldTime);
     await Weather.roll(now);
     this.render();
+  }
+
+  /** GM: review the chronicle log, compile it to a journal, or clear it. */
+  static async #onChronicle() {
+    if (!game.user.isGM) return;
+    const entries = Chronicle.getEntries();
+    const icons = { combat: "⚔️", rest: "🛌", scene: "🗺️", beat: "✦" };
+
+    const list = entries.length
+      ? entries.map(e => `<li><strong>${e.stamp}</strong> ${icons[e.type] ?? "•"}
+          <span class="ggc-chron-date">${e.dateLabel}</span> — ${foundry.utils.escapeHTML(e.text)}</li>`).join("")
+      : `<p class="ggc-empty">${game.i18n.localize("GGCAL.Chronicle.Empty")}</p>`;
+
+    await DialogV2.wait({
+      window: { title: game.i18n.localize("GGCAL.Chronicle.Title"), icon: "fa-solid fa-scroll" },
+      position: { width: 480 },
+      rejectClose: false,
+      content: `<div class="gg-calendar-chronicle"><ul class="ggc-chron-list">${list}</ul></div>`,
+      buttons: [
+        {
+          action: "compile",
+          label: game.i18n.localize("GGCAL.Chronicle.Compile"),
+          icon: "fa-solid fa-feather",
+          default: true,
+          callback: async () => {
+            const page = await Chronicle.compile(NotesStore);
+            if (page) await NotesStore.openJournal(page.id);
+          }
+        },
+        {
+          action: "clear",
+          label: game.i18n.localize("GGCAL.Chronicle.Clear"),
+          icon: "fa-solid fa-trash",
+          callback: async () => {
+            const ok = await DialogV2.confirm({
+              window: { title: game.i18n.localize("GGCAL.Chronicle.Clear") },
+              content: `<p>${game.i18n.localize("GGCAL.Chronicle.ClearConfirm")}</p>`,
+              rejectClose: false
+            });
+            if (ok) await Chronicle.clear();
+          }
+        },
+        { action: "close", label: game.i18n.localize("Close") }
+      ]
+    });
   }
 
   /** Open the notes panel for a day; GM can also jump the date from here. */

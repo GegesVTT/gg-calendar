@@ -12,6 +12,8 @@ import { TimeManager } from "./time.mjs";
 import { GGCalendarApp } from "./app.mjs";
 import { registerWorldCalendar, refreshWorldCalendar } from "./calendar-data.mjs";
 import { installSimpleCalendarBridge } from "./sc-bridge.mjs";
+import { registerClimateZone } from "./climate-zone.mjs";
+import { Chronicle } from "./chronicle.mjs";
 
 let engine = null;
 let app = null;
@@ -71,6 +73,10 @@ Hooks.once("init", () => {
   NotesStore.register();
   Weather.register();
   TimeManager.register();
+  Chronicle.register();
+
+  // Register the Climate Zone region behavior (v13+); skipped on v12.
+  registerClimateZone(getEngine);
 
   game.settings.register(MODULE_ID, SETTINGS.WORLD_CALENDAR, {
     name: "GGCAL.Settings.WorldCalendar.Name",
@@ -107,6 +113,7 @@ Hooks.once("ready", () => {
   refreshWorldCalendar();
   app = new GGCalendarApp(getEngine);
   TimeManager.activateHooks(getEngine);
+  Chronicle.activateHooks(getEngine);
 
   if (game.settings.get(MODULE_ID, SETTINGS.SC_BRIDGE)) {
     installSimpleCalendarBridge(getEngine, TimeManager);
@@ -126,7 +133,13 @@ Hooks.once("ready", () => {
     rollWeather: () => Weather.roll(getEngine().fromSeconds(game.time.worldTime)),
     moons: () => getEngine().moonPhases(game.time.worldTime),
     notes: NotesStore,
-    openJournal: (pageId) => NotesStore.openJournal(pageId)
+    openJournal: (pageId) => NotesStore.openJournal(pageId),
+    chronicle: {
+      mark: (text) => Chronicle.mark(text, getEngine),
+      compile: () => Chronicle.compile(NotesStore),
+      clear: () => Chronicle.clear(),
+      entries: () => Chronicle.getEntries()
+    }
   };
 
   console.log(`${MODULE_ID} | GG Calendar ready — ${getEngine().config.name}`);

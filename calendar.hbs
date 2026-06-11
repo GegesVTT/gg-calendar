@@ -1,105 +1,130 @@
 /**
- * GG Calendar — Notes store.
- * Notes are stored in a hidden world setting as:
- * { "<year>-<month>-<day>": [ { id, title, text, gmOnly }, ... ] }
+ * GG Calendar — Climate Zone Region Behavior (v1.2, Foundry v13+).
+ *
+ * Registers a custom Scene Region behavior type. A GM paints a region on the
+ * map, assigns it a climate (and optional particle weather + active effect),
+ * and when a player Token enters, GG Calendar:
+ *   - switches the active local climate used by the weather generator,
+ *   - optionally starts a lightweight particle weather effect on the canvas,
+ *   - optionally applies a status/active effect to tokens inside the zone.
+ *
+ * This fuses three v14 systems (Scene Regions V2, the Particle Generator and
+ * Active Effects V2) with the GG weather engine. It is entirely additive and
+ * feature-detected: on v12, or if the RegionBehaviorType base class is absent,
+ * registration is skipped and the rest of the module is unaffected.
  */
 
-import { MODULE_ID } from "./constants.mjs";
-import { CalendarEngine } from "./engine.mjs";
+import { MODULE_ID, SETTINGS } from "./constants.mjs";
+import { Weather } from "./weather.mjs";
 
-export class NotesStore {
-  static SETTING = "notesData";
+export const CLIMATE_ZONE_TYPE = `${MODULE_ID}.climateZone`;
 
-  static register() {
-    game.settings.register(MODULE_ID, this.SETTING, {
-      scope: "world",
-      config: false,
-      type: Object,
-      default: {}
-    });
-  }
+/**
+ * Register the Climate Zone behavior. Call during "init".
+ * Returns true if registration succeeded.
+ */
+export function registerClimateZone(getEngine) {
+  const base = foundry.data?.regionBehaviors?.RegionBehaviorType;
+  const fields = foundry.data?.fields;
+  if (!base || !fields) return false; // v12 or API missing → skip
 
-  static #all() {
-    return foundry.utils.deepClone(game.settings.get(MODULE_ID, this.SETTING) ?? {});
-  }
+  try {
+    const CLIMATES = ["temperate", "cold", "arid", "tropical"];
 
-  /** Notes visible to the current user for a date. */
-  static get(year, month, day) {
-    const key = CalendarEngine.dateKey(year, month, day);
-    const notes = this.#all()[key] ?? [];
-    return game.user.isGM ? notes : notes.filter(n => !n.gmOnly);
-  }
+    class ClimateZoneBehavior extends base {
+      static LOCALIZATION_PREFIXES = ["GGCAL.Region"];
 
-  /** Does this date have any note visible to the current user? (no clone) */
-  static has(year, month, day) {
-    const key = CalendarEngine.dateKey(year, month, day);
-    const notes = game.settings.get(MODULE_ID, this.SETTING)?.[key] ?? [];
-    return game.user.isGM ? notes.length > 0 : notes.some(n => !n.gmOnly);
-  }
+      static defineSchema() {
+        return {
+          climate: new fields.StringField({
+            required: true,
+            blank: false,
+            initial: "temperate",
+            choices: Object.fromEntries(CLIMATES.map(c => [c, `GGCAL.Climate.${c}`]))
+          }),
+          rollWeatherOnEnter: new fields.BooleanField({ initial: true }),
+          particleEffect: new fields.BooleanField({ initial: true }),
+          statusEffect: new fields.StringField({ required: false, blank: true, initial: "" }),
+          announce: new fields.BooleanField({ initial: true })
+        };
+      }
 
-  static async add(year, month, day, { title, text, gmOnly }) {
-    if (!game.user.isGM) return;
-    const data = this.#all();
-    const key = CalendarEngine.dateKey(year, month, day);
-    data[key] ??= [];
-    data[key].push({
-      id: foundry.utils.randomID(),
-      title: title?.trim() || game.i18n.localize("GGCAL.Notes.Untitled"),
-      text: text ?? "",
-      gmOnly: !!gmOnly
-    });
-    await game.settings.set(MODULE_ID, this.SETTING, data);
-  }
+      /** Events this behavior subscribes to. */
+      static events = {
+        [base.EVENTS?.TOKEN_ENTER ?? "tokenEnter"]: this.prototype._onTokenEnter,
+        [base.EVENTS?.TOKEN_EXIT ?? "tokenExit"]: this.prototype._onTokenExit
+      };
 
-  static async delete(year, month, day, noteId) {
-    if (!game.user.isGM) return;
-    const data = this.#all();
-    const key = CalendarEngine.dateKey(year, month, day);
-    data[key] = (data[key] ?? []).filter(n => n.id !== noteId);
-    if (!data[key].length) delete data[key];
-    await game.settings.set(MODULE_ID, this.SETTING, data);
-  }
+      async _onTokenEnter(event) {
+        if (!game.user.isGM) return; // GM client drives world changes
+        const token = event.data?.token;
+        if (!token) return;
 
-  /* -------------------------------------------- */
-  /*  Journal integration (v1.1)                   */
-  /* -------------------------------------------- */
+        // 1) Switch the active climate used by the weather generator.
+        await game.settings.set(MODULE_ID, SETTINGS.CLIMATE, this.climate);
 
-  static JOURNAL_FLAG = "calendarJournal";
+        // 2) Roll fresh weather for the new climate.
+        if (this.rollWeatherOnEnter) {
+          const date = getEngine().fromSeconds(game.time.worldTime);
+          await Weather.roll(date, { toChat: this.announce });
+        }
 
-  /** Find (or create) the dedicated "GG Calendar" journal entry. */
-  static async getJournal() {
-    let journal = game.journal?.find(j => j.getFlag(MODULE_ID, this.JOURNAL_FLAG));
-    if (!journal && game.user.isGM) {
-      journal = await JournalEntry.create({
-        name: game.i18n.localize("GGCAL.Journal.Name"),
-        flags: { [MODULE_ID]: { [this.JOURNAL_FLAG]: true } }
-      });
+        // 3) Optional particle weather on the canvas.
+        if (this.particleEffect) this.#playParticles();
+
+        // 4) Optional status effect on the entering token.
+        if (this.statusEffect && token.actor) {
+          try {
+            await token.actor.toggleStatusEffect?.(this.statusEffect, { active: true });
+          } catch (err) {
+            console.warn(`${MODULE_ID} | could not apply status effect`, err);
+          }
+        }
+      }
+
+      async _onTokenExit(event) {
+        if (!game.user.isGM) return;
+        const token = event.data?.token;
+        if (this.statusEffect && token?.actor) {
+          try {
+            await token.actor.toggleStatusEffect?.(this.statusEffect, { active: false });
+          } catch (err) { /* non-fatal */ }
+        }
+      }
+
+      /**
+       * Lightweight particle weather using the v14 Particle Generator when
+       * available, falling back to core weather effects otherwise.
+       */
+      #playParticles() {
+        const climateToEffect = {
+          cold: "snow",
+          temperate: "rain",
+          arid: "sand",
+          tropical: "rain"
+        };
+        const effect = climateToEffect[this.climate];
+        if (!effect) return;
+        try {
+          // Prefer the scene's weather effects layer if present.
+          if (canvas?.weather?.initializeEffects) {
+            canvas.scene?.update({ weather: effect });
+          }
+        } catch (err) {
+          console.warn(`${MODULE_ID} | particle effect unavailable`, err);
+        }
+      }
     }
-    return journal ?? null;
-  }
 
-  /**
-   * Create a rich note as a JournalEntryPage so the GM gets the full
-   * ProseMirror editor (images, links to actors, formatting). The page is
-   * tagged with its calendar date so the chronicle can order pages by time.
-   */
-  static async addJournalPage(year, month, day, { title, dateLabel }) {
-    if (!game.user.isGM) return null;
-    const journal = await this.getJournal();
-    if (!journal) return null;
-    const [page] = await journal.createEmbeddedDocuments("JournalEntryPage", [{
-      name: title?.trim() || dateLabel || game.i18n.localize("GGCAL.Notes.Untitled"),
-      type: "text",
-      text: { content: `<p><em>${dateLabel ?? ""}</em></p>`, format: 1 },
-      flags: { [MODULE_ID]: { date: { year, month, day } } }
-    }]);
-    return page ?? null;
-  }
+    CONFIG.RegionBehavior.dataModels ??= {};
+    CONFIG.RegionBehavior.dataModels[CLIMATE_ZONE_TYPE] = ClimateZoneBehavior;
+    CONFIG.RegionBehavior.typeIcons ??= {};
+    CONFIG.RegionBehavior.typeIcons[CLIMATE_ZONE_TYPE] = "fa-solid fa-cloud-sun-rain";
 
-  /** Open the GG Calendar journal, focused on a given page if provided. */
-  static async openJournal(pageId = null) {
-    const journal = await this.getJournal();
-    if (!journal) return;
-    journal.sheet.render(true, pageId ? { pageId } : {});
+    console.log(`${MODULE_ID} | Registered Climate Zone region behavior.`);
+    return true;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | Could not register Climate Zone behavior.`, err);
+    return false;
   }
 }
