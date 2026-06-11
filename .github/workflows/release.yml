@@ -35,13 +35,22 @@ jobs:
         run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Inject version and download URL into module.json
-        uses: microsoft/variable-substitution@v1
-        with:
-          files: "module.json"
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          TAG="${{ github.ref_name }}"
+          REPO="${{ github.repository }}"
+          node - <<'EOF'
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('module.json', 'utf8'));
+          m.version  = process.env.VERSION;
+          m.download = `https://github.com/${process.env.REPO}/releases/download/${process.env.TAG}/gg-calendar-${process.env.TAG}.zip`;
+          m.manifest = `https://github.com/${process.env.REPO}/releases/latest/download/module.json`;
+          fs.writeFileSync('module.json', JSON.stringify(m, null, 2));
+          EOF
         env:
-          version: ${{ steps.version.outputs.value }}
-          download: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/gg-calendar-${{ github.ref_name }}.zip
-          manifest: https://github.com/${{ github.repository }}/releases/latest/download/module.json
+          VERSION: ${{ steps.version.outputs.value }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
 
       - name: Build module archive
         run: |
